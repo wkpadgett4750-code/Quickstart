@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -10,7 +11,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
+@Disabled
 @Configurable
 @TeleOp(name = "Shooter Regression Tuner", group = "TeleOp")
 public class ShooterRegressionTuner extends OpMode {
@@ -37,7 +38,7 @@ public class ShooterRegressionTuner extends OpMode {
         follower = Constants.createFollower(hardwareMap);
 
         // Start center of bot at 8,8 (tucked in corner)
-        follower.setStartingPose(new Pose(8, 8, 0));
+        follower.setStartingPose(new Pose(7.70519724409, 8.12401575, 0));
 
         // Hardware for raw motor driving
         leftFront = hardwareMap.get(DcMotorEx.class, "LF");
@@ -120,7 +121,7 @@ public class ShooterRegressionTuner extends OpMode {
 
         // --- 4. HARDWARE UPDATES ---
         // We use the "tuning" variables from Dashboard for manual control
-        shooter.setFlywheelVelocity(ShooterSubsystem.tuningRPM);
+        shooter.setFlywheelVelocity(ShooterSubsystem.tuningRPM, false);
         shooter.setHoodPosition(ShooterSubsystem.tuningHoodPos);
 
         // Manual Aim: Use the Dashboard slider to aim the turret

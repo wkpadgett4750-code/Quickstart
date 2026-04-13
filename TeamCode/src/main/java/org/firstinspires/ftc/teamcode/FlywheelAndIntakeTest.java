@@ -52,8 +52,8 @@ public class FlywheelAndIntakeTest extends LinearOpMode {
             // -----------------------------
             if (gamepad1.left_bumper) {
                 // Full speed using encoder mode
-                intakeLeft.setVelocity(1150);   // ticks/sec equivalent handled internally
-                intakeRight.setVelocity(1150);
+                intakeLeft.setVelocity(1500);   // ticks/sec equivalent handled internally
+                intakeRight.setVelocity(1500);
             }
 
             if (gamepad1.right_bumper) {
@@ -65,8 +65,8 @@ public class FlywheelAndIntakeTest extends LinearOpMode {
             // -----------------------------
             // TELEMETRY
             // -----------------------------
-            telemetry.addData("Flywheel Target (RPM)", shooter.getTargetVelocity());
-            telemetry.addData("Flywheel Current (RPM)", shooter.getCurrentVelocity());
+            //telemetry.addData("Flywheel Target (RPM)", shooter.getTargetVelocity());
+           // telemetry.addData("Flywheel Current (RPM)", shooter.getCurrentVelocity());
             telemetry.addData("Intake", gamepad1.left_bumper ? "ON" : "OFF");
             telemetry.update();
         }

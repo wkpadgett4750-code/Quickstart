@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -43,6 +44,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *   Gamepad1 X                    → Reset PIDF to ShooterSubsystem defaults
  * ============================================================
  */
+@Disabled
 @Configurable
 @TeleOp(name = "Flywheel PIDF Tuner", group = "Tuning")
 public class FlywheelPIDTuner extends LinearOpMode {
@@ -135,5 +137,7 @@ public class FlywheelPIDTuner extends LinearOpMode {
         }
 
         shooter.setFlywheelVelocity(0, false);
+
+
     }
 }

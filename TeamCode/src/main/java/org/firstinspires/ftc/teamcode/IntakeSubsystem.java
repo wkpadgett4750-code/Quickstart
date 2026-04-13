@@ -11,11 +11,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class IntakeSubsystem {
 
     // Intake power settings
-    public static double ASlowDown = .9;
+    public static double ASlowDown = .6;
     public static double INTAKE_POWER = 1.0;
 
     // How long a beam must stay broken to count as "full"
-    public static double BEAM_HOLD_TIME = 0.8; // seconds
+    public static double BEAM_HOLD_TIME = 0.2; // seconds
 
     private final DcMotorEx intake, transfer;
 
