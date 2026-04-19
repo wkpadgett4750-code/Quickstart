@@ -136,7 +136,7 @@ public class BlueDriver extends LinearOpMode {
                         intake.intakeOff();
                         intakeAutoStopped = true;
                     }
-                    if (breakTimer.seconds() >= 0.4 && intakeAutoStopped) {
+                    if (breakTimer.seconds() >= 0.3 && intakeAutoStopped) {
                         shooter.openGate();
                     }
                 }
@@ -162,7 +162,7 @@ public class BlueDriver extends LinearOpMode {
                     }
                     break;
                 case RUN_INTAKE:
-                    if (shotTimer.seconds() >= 0.4) {
+                    if (shotTimer.seconds() >= 0.5) {
                         intake.intakeOff();
                         shotTimer.reset();
                         currentShotState = ShotState.CLOSE_GATE;

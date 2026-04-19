@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class IntakeSubsystem {
 
     // Intake power settings
-    public static double ASlowDown = .6;
+    public static double ASlowDown = .65;
     public static double INTAKE_POWER = 1.0;
 
     // How long a beam must stay broken to count as "full"
