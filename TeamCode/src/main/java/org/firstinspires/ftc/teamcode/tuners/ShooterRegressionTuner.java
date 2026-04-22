@@ -114,7 +114,7 @@ public class ShooterRegressionTuner extends OpMode {
         // This overrides intake state to feed the ball
         if (gamepad1.a) {
             shooter.openGate();
-            intake.intakeCustom(); // Feed ball
+            intake.closeShot(); // Feed ball
         } else {
             // Only update intake if we aren't kicking
             handleIntakeState();

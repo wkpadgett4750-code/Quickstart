@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
-import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -20,8 +19,7 @@ public class BlueDriver extends LinearOpMode {
 
     DcMotor leftFront, rightFront, leftBack, rightBack;
 
-    // Added WAIT_FOR_GATE to the state machine
-    enum ShotState { IDLE, WAIT_FOR_GATE, RUN_INTAKE, CLOSE_GATE }
+    enum ShotState { IDLE, OPEN_GATE, WAIT_FOR_GATE, RUN_INTAKE, CLOSE_GATE, COOLDOWN }
     ShotState currentShotState = ShotState.IDLE;
     ElapsedTime manualOnTimer = new ElapsedTime();
     ElapsedTime shotTimer = new ElapsedTime();
@@ -30,7 +28,6 @@ public class BlueDriver extends LinearOpMode {
     boolean beamWasBroken = false;
     boolean intakeAutoStopped = false;
 
-    // Toggle variables for Right Trigger
     boolean intakeDisabledManually = false;
     boolean lastRT = false;
 
@@ -66,8 +63,8 @@ public class BlueDriver extends LinearOpMode {
             follower.update();
             Pose currentPose = follower.getPose();
 
-            // Get the current velocity vector from Pedro Pathing for SOTM
-            Vector currentVelocity = follower.getVelocity();
+            // SOTM vector calculation removed, just grabbing position for standard tracking
+            double distToGoal = Math.hypot(ShooterSubsystem.blueGoalX - currentPose.getX(), ShooterSubsystem.blueGoalY - currentPose.getY());
 
             // 1. DRIVING
             double y = -gamepad1.left_stick_y;
@@ -89,31 +86,21 @@ public class BlueDriver extends LinearOpMode {
             lastLB = gamepad1.left_bumper;
             lastRB = gamepad1.right_bumper;
 
-            // Updated alignTurret call injecting X and Y velocities
+            // Updated alignTurret call (No velocity vectors needed)
             shooter.alignTurret(
                     currentPose.getX(),
                     currentPose.getY(),
                     currentPose.getHeading(),
-                    currentVelocity.getXComponent(),
-                    currentVelocity.getYComponent(),
                     true,
                     telemetry,
                     0,
                     false
             );
 
-// 3. INTAKE LOGIC (MANUAL TOGGLE ON RIGHT TRIGGER)
+            // --- 3. INTAKE LOGIC ---
             boolean rtPressed = gamepad1.right_trigger > 0.5;
             if (rtPressed && !lastRT) {
                 intakeDisabledManually = !intakeDisabledManually;
-
-                if (intakeDisabledManually) {
-                    intake.intakeOff();
-                    shooter.openGate();
-                } else {
-                    shooter.closeGate();
-                    manualOnTimer.reset();
-                }
             }
             lastRT = rtPressed;
 
@@ -121,56 +108,59 @@ public class BlueDriver extends LinearOpMode {
 
             if (currentShotState == ShotState.IDLE) {
                 if (intakeDisabledManually) {
-                    intake.intakeOff(); // Gate is already open from the toggle logic above
-                }
-                else if (manualOnTimer.seconds() < 0.5) {
-                    intake.intakeOff(); // Wait for gate to close
+                    intake.intakeOff();
                 }
                 else if (isCurrentlyBroken) {
-                    // Auto-Stop Sequence
                     if (!beamWasBroken) {
                         breakTimer.reset();
                         beamWasBroken = true;
                     }
-                    if (breakTimer.seconds() >= 0.3 && !intakeAutoStopped) {
+                    if (breakTimer.seconds() >= 0.3) {
                         intake.intakeOff();
                         intakeAutoStopped = true;
-                    }
-                    if (breakTimer.seconds() >= 0.3 && intakeAutoStopped) {
-                        shooter.openGate();
                     }
                 }
                 else {
                     intake.intakeFull();
                     beamWasBroken = false;
                     intakeAutoStopped = false;
+                    shooter.closeGate();
                 }
             }
 
-            // 4. SHOT SEQUENCE (ON LEFT TRIGGER)
+            // --- 4. SHOT SEQUENCE ---
             if (gamepad1.left_trigger > 0.5 && currentShotState == ShotState.IDLE) {
-                currentShotState = ShotState.WAIT_FOR_GATE;
+                currentShotState = ShotState.OPEN_GATE;
+                shooter.openGate();
                 shotTimer.reset();
             }
 
             switch (currentShotState) {
-                case WAIT_FOR_GATE:
-                    if (shotTimer.seconds() >= 0.05) {
-                        intake.intakeCustom();
+                case OPEN_GATE:
+                    if (shotTimer.seconds() >= 0.15) {
+                        // Distance-based shot intake speed injection
+                        if (distToGoal > 140) {
+                            intake.farShot();
+                        } else {
+                            intake.closeShot();
+                        }
+
                         shotTimer.reset();
                         currentShotState = ShotState.RUN_INTAKE;
                     }
                     break;
+
                 case RUN_INTAKE:
-                    if (shotTimer.seconds() >= 0.5) {
+                    if (shotTimer.seconds() >= 0.6) {
                         intake.intakeOff();
+                        shooter.closeGate();
                         shotTimer.reset();
-                        currentShotState = ShotState.CLOSE_GATE;
+                        currentShotState = ShotState.COOLDOWN;
                     }
                     break;
-                case CLOSE_GATE:
-                    if (shotTimer.seconds() >= 0.3) {
-                        shooter.closeGate();
+
+                case COOLDOWN:
+                    if (shotTimer.seconds() >= 0.1) {
                         currentShotState = ShotState.IDLE;
                         intakeAutoStopped = false;
                         beamWasBroken = false;
@@ -178,6 +168,7 @@ public class BlueDriver extends LinearOpMode {
                     break;
             }
 
+            telemetry.addData("Dist to Goal", distToGoal);
             telemetry.addData("Intake System", intakeDisabledManually ? "DISABLED" : "AUTO");
             telemetry.addData("Shot Phase", currentShotState);
             telemetry.update();

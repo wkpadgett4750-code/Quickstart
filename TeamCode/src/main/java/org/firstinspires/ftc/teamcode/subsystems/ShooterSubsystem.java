@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -15,12 +16,13 @@ public class ShooterSubsystem {
     private DcMotorEx shooterLeft, shooterRight, rf;
     private CRServo turretLeft, turretRight;
     private Servo shooterHood, shooterGate;
+    private VoltageSensor batteryVoltageSensor;
 
-    // --- LOOK-UP TABLE (LUT) DATA ---
-    public static double[] distances = {25, 35, 43.0, 61.1, 79.1, 97.1, 113.7};
-    public static double[] rpms      = {1280, 1280, 1280, 1420, 1580, 1650, 1780};
-    public static double[] hoods     = {.67, .67, 0.67, 0.62, 0.58, 0.54, 0.52};
-    public static double[] tofs      = {.56, .58, 0.58, 0.63, 0.62, 0.65, 0.69};
+    // --- UPDATED LOOK-UP TABLE (LUT) DATA ---
+    // Sorted from closest to furthest
+    public static double[] distances = {42.08, 53.03, 64.34, 67.62, 69.52, 74.42, 84.0, 93.5, 102.94, 113.7, 130, 150.86, 154.53, 160.19};
+    public static double[] rpms      = {1290, 1300, 1470, 1540, 1530, 1600, 1660, 1700, 1740, 1770, 1800, 1950, 1960, 1980};
+    public static double[] hoods     = {0.70, 0.645, 0.585, 0.56, 0.55, 0.53, 0.525, 0.515, 0.51, 0.505, .505, 0.52, 0.52, 0.52};
 
     // --- TURRET CONSTANTS ---
     public static double blueGoalX = 0.0, blueGoalY = 144.0;
@@ -29,26 +31,25 @@ public class ShooterSubsystem {
     public static double tSlope = -67.9055;
     public static double turretOffsetX = 1.5;
     public static double turretOffsetY = 0.0;
-    public static int turretMin = -8500, turretMax = 13000;
+    public static int turretMin = -8600, turretMax = 9000;
     public static double ticksPerRev = Math.abs(tSlope * 360.0);
 
     // Dashboard Tuning
     public static double tuningRPM = 1500, tuningHoodPos = 0.5;
     public static int tuningTurretTicks = 0;
 
-    // --- NEW TUNED TURRET PID VALUES ---
-    public static double tp = 0.00011;
-    public static double ti = 0.0000048;
-    public static double td = 0.0006;
-    public static double ts = 0.084;
-    public static int deadband = 6;
+    // --- TUNED TURRET PID VALUES ---
+    public static double tp = 0.0001;
+    public static double ti = 0.000004;
+    public static double td = 0.0007;
+    public static double ts = 0.074;
+    public static int deadband = 15;
 
     // Flywheel Constants
-    public static double MAX_RPM = 2800, RAMP_LIMIT = 0.008, rpmTolerance = 50;
-
-    public static double kP = 0.001, kF = 0.00052;
+    public static double MAX_RPM = 2000, RAMP_LIMIT = 0.05, rpmTolerance = 50;
+    public static double kP = 0.001, kF = 0.000427;
     public static double hoodMinPos = 0, hoodMaxPos = .7;
-    public static double gateOpenPos = 0, gateClosedPos = .95;
+    public static double gateOpenPos = .67, gateClosedPos = .52;
     public static double globalRPMTrim = 0.0;
 
     // State
@@ -59,7 +60,6 @@ public class ShooterSubsystem {
     private double lastTurretPower = 0;
     private double lastTurretError = 0;
     private double turretIntegralSum = 0;
-    private com.qualcomm.robotcore.hardware.VoltageSensor batteryVoltageSensor;
 
     public ShooterSubsystem(HardwareMap hardwareMap) {
         this.turretLeft = hardwareMap.get(CRServo.class, "turret1");
@@ -79,9 +79,9 @@ public class ShooterSubsystem {
     }
 
     /**
-     * SOTM using Interpolation and Vector Compensation
+     * Static Odometry Goal Tracking (No SOTM)
      */
-    public void alignTurret(double x, double y, double heading, double vx, double vy, boolean blue, Telemetry telemetry, double driverOffset, boolean isAuto) {
+    public void alignTurret(double x, double y, double heading, boolean blue, Telemetry telemetry, double driverOffset, boolean isAuto) {
         if (!trackingActive && !isAuto) {
             stopTurret();
             return;
@@ -91,32 +91,24 @@ public class ShooterSubsystem {
         double targetY = blue ? blueGoalY : redGoalY;
 
         double distToRealGoal = Math.hypot(targetX - x, targetY - y);
-        double timeInFlight = interpolate(distToRealGoal, distances, tofs);
-
-        // Vector Math: Calculate Future Goal (SOTM)
-        double futrGoalX = targetX - (vx * timeInFlight);
-        double futrGoalY = targetY - (vy * timeInFlight);
-
-        double virtualDist = Math.hypot(futrGoalX - x, futrGoalY - y);
 
         if (flywheelsEnabled || isAuto) {
-            setFlywheelVelocity(interpolate(virtualDist, distances, rpms), isAuto);
-            setHoodPosition(interpolate(virtualDist, distances, hoods));
+            setFlywheelVelocity(interpolate(distToRealGoal, distances, rpms), isAuto);
+            setHoodPosition(interpolate(distToRealGoal, distances, hoods));
         }
 
-        // World-Locking Turret Math
+        // World-Locking Turret Math (Static)
         double cos = Math.cos(heading), sin = Math.sin(heading);
         double adjX = x + (turretOffsetX * cos - turretOffsetY * sin);
         double adjY = y + (turretOffsetX * sin + turretOffsetY * cos);
 
-        double angleToGoal = Math.toDegrees(Math.atan2(futrGoalX - adjX, futrGoalY - adjY));
+        double angleToGoal = Math.toDegrees(Math.atan2(targetX - adjX, targetY - adjY));
         double targetRel = angleToGoal + Math.toDegrees(heading) - angleOffset + trimDegrees + driverOffset;
 
         while (targetRel > 180)  targetRel -= 360;
         while (targetRel < -180) targetRel += 360;
         int targetTicks = (int) (targetRel * tSlope);
 
-        // FIXED: Continuous wrapping check that respects hard limits
         if (targetTicks < turretMin) {
             if (targetTicks + (int)ticksPerRev <= turretMax) targetTicks += (int)ticksPerRev;
         } else if (targetTicks > turretMax) {
@@ -126,8 +118,7 @@ public class ShooterSubsystem {
         setTurretPosition(targetTicks);
 
         if (telemetry != null) {
-            telemetry.addData("Dist", virtualDist);
-            telemetry.addData("TOF", timeInFlight);
+            telemetry.addData("Dist", distToRealGoal);
         }
     }
 
@@ -154,23 +145,24 @@ public class ShooterSubsystem {
             return;
         }
 
-        if (Math.abs(error) < 150) {
+        if (Math.abs(error) < 400) {
             turretIntegralSum += error;
         } else {
             turretIntegralSum = 0;
         }
 
         double derivative = (error - lastTurretError);
-
-        // Tapered Feedforward: Fades out within 50 ticks to stop jitter
         double feedForward = (Math.abs(error) > 80) ? Math.copySign(ts, error) : (error / 80.0) * ts;
-
         double power = (error * tp) + (turretIntegralSum * ti) + (derivative * td) + feedForward;
 
         lastTurretError = error;
         lastTurretPower = Range.clip(power, -0.9, 0.9);
         turretLeft.setPower(lastTurretPower);
         turretRight.setPower(lastTurretPower);
+    }
+
+    public void setFlywheelVelocity(double targetRPM) {
+        setFlywheelVelocity(targetRPM, false);
     }
 
     public void setFlywheelVelocity(double targetRPM, boolean isAuto) {
@@ -185,13 +177,13 @@ public class ShooterSubsystem {
             return;
         }
 
-        double voltage = batteryVoltageSensor.getVoltage();
-        // Feedforward with strict voltage compensation
+        double voltage = 12.0;
+        try { voltage = batteryVoltageSensor.getVoltage(); } catch (Exception e) {}
+
         double compensatedFF = (targetRPM * kF) * (12.0 / voltage);
         double error = targetRPM - shooterLeft.getVelocity();
         double requestedPower = compensatedFF + (error * kP);
 
-        // FUSE PROTECTOR: Limits the RATE of change, not just the max power
         if (requestedPower > lastFlywheelPower + RAMP_LIMIT) {
             requestedPower = lastFlywheelPower + RAMP_LIMIT;
         }
@@ -201,16 +193,9 @@ public class ShooterSubsystem {
         shooterRight.setPower(finalPower);
         lastFlywheelPower = finalPower;
     }
-    public void setHoodPosition(double pos) {
-        shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos));
-    }
 
-    public void stopTurret() {
-        turretLeft.setPower(0);
-        turretRight.setPower(0);
-        turretIntegralSum = 0;
-    }
-
+    public void setHoodPosition(double pos) { shooterHood.setPosition(Range.clip(pos, hoodMinPos, hoodMaxPos)); }
+    public void stopTurret() { turretLeft.setPower(0); turretRight.setPower(0); turretIntegralSum = 0; }
     public void openGate() { shooterGate.setPosition(gateOpenPos); }
     public void closeGate() { shooterGate.setPosition(gateClosedPos); }
     public void enableFlywheels() { flywheelsEnabled = true; }

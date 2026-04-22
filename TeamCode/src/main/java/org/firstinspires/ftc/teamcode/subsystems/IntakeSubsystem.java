@@ -11,7 +11,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class IntakeSubsystem {
 
     // Intake power settings
-    public static double ASlowDown = .65;
+    public static double closeSpeed = .68;
+    public static double farSpeed = .48;
     public static double INTAKE_POWER = 1.0;
 
     // How long a beam must stay broken to count as "full"
@@ -53,11 +54,14 @@ public class IntakeSubsystem {
         transfer.setPower(1.0);
     }
 
-    public void intakeCustom() {
-        intake.setPower(ASlowDown);
-        transfer.setPower(ASlowDown);
+    public void closeShot() {
+        intake.setPower(closeSpeed);
+        transfer.setPower(closeSpeed);
     }
-
+    public void farShot() {
+        intake.setPower(farSpeed);
+        transfer.setPower(farSpeed);
+    }
     public void intakeOff() {
         intake.setPower(0);
         transfer.setPower(0);
