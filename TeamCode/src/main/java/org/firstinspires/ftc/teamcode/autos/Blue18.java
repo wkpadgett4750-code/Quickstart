@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.subsystems.ShooterSubsystem;
 
 @Autonomous(name = "BottomBlue21", group = "Autonomous")
 @Configurable
-public class BottomBlue21 extends OpMode {
+public class Blue18 extends OpMode {
     private TelemetryManager panelsTelemetry;
     public Follower follower;
 
@@ -170,7 +170,7 @@ public class BottomBlue21 extends OpMode {
                 if (!follower.isBusy()) { spinUpTimer.reset(); pathState = 16; }
                 break;
             case 16:
-                if (spinUpTimer.seconds() >= .9) { follower.followPath(paths.GateShot); pathState = 7; }
+                if (spinUpTimer.seconds() >= .6) { follower.followPath(paths.GateShot); pathState = 7; }
                 break;
             case 7:
                 if (!follower.isBusy()) { triggerShot(); pathState = 8; }
@@ -207,7 +207,7 @@ public class BottomBlue21 extends OpMode {
         public Paths(Follower follower) {
             PreLoadShot = follower.pathBuilder().addPath(
                             new BezierCurve(
-                                    new Pose(18.100, 119.500),
+                                    new Pose(18.100, 124.500),
                                     new Pose(41.154, 101.158),
                                     new Pose(55.850, 85.907)
                             )
@@ -235,8 +235,8 @@ public class BottomBlue21 extends OpMode {
             GateTake = follower.pathBuilder().addPath(
                             new BezierCurve(
                                     new Pose(56.290, 86.178),
-                                    new Pose(46.495, 75.005),
-                                    new Pose(8.51, 63.139)
+                                    new Pose(46.495, 60.005),
+                                    new Pose(8.51, 61.139)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(-135), Math.toRadians(-215))
                     .build();
@@ -244,7 +244,7 @@ public class BottomBlue21 extends OpMode {
             GateShot = follower.pathBuilder().addPath(
                             new BezierCurve(
                                     new Pose(8.664, 59.439),
-                                    new Pose(39.500, 62.374),
+                                    new Pose(46.500, 60.374),
                                     new Pose(55.981, 86.131)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(-210), Math.toRadians(-135))

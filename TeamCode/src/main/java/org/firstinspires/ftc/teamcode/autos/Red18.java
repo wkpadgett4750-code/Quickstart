@@ -32,7 +32,7 @@ public class Red18 extends OpMode {
     private int gateCycles = 0;
 
     // --- TURRET TARGET (Adjusted for Red Side) ---
-    public static double turretTargetDegrees = 90.0;
+    public static double turretTargetDegrees = 95.0;
 
     // --- STATE TIMERS & FLAGS ---
     enum ShotState { IDLE, OPEN_GATE, RUN_INTAKE, CLOSE_GATE, COOLDOWN }
@@ -173,7 +173,7 @@ public class Red18 extends OpMode {
                 if (!follower.isBusy()) { spinUpTimer.reset(); pathState = 16; }
                 break;
             case 16:
-                if (spinUpTimer.seconds() >= 0.65) { follower.followPath(paths.GateShot); pathState = 7; }
+                if (spinUpTimer.seconds() >= 0.6) { follower.followPath(paths.GateShot); pathState = 7; }
                 break;
             case 7:
                 if (!follower.isBusy()) { triggerShot(); pathState = 8; }

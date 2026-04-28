@@ -112,6 +112,11 @@ public class ShooterSubsystem {
         double targetServoPos = (safeDegrees / turretRangeDegrees) + turretCenterValue;
         updateTurretCommand(targetServoPos);
     }
+    public double getTurretAngle() {
+        // Math: (Servo Value - Center) * Total Range
+        // Example: (0.5 - 0.5) * 310.34 = 0 degrees
+        return (currentCommandedPos - turretCenterValue) * turretRangeDegrees;
+    }
 
     public void updateTurretCommand(double targetPos) {
         double target = Range.clip(targetPos, 0.0, 0.95);
